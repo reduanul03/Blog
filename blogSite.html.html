@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social Blog</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background: #fafafa;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .create-post-btn {
+            background: #0095f6;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        .post-form {
+            display: none;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .post-form input, .post-form textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .post-form button {
+            background: #0095f6;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .posts-container {
+            display: grid;
+            grid-gap: 20px;
+        }
+
+        .post {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            padding: 15px;
+        }
+
+        .post-img {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            border-radius: 5px;
+        }
+
+        .post-actions {
+            display: flex;
+            gap: 15px;
+            margin: 10px 0;
+        }
+
+        .like-btn, .comment-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+
+        .comments-section {
+            margin-top: 10px;
+            display: none;
+        }
+
+        .comment {
+            display: flex;
+            gap: 10px;
+            margin: 5px 0;
+        }
+
+        .comment-input {
+            width: 100%;
+            padding: 5px;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .post-img {
+                height: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button class="create-post-btn" onclick="togglePostForm()">Create New Post</button>
+        
+        <form class="post-form" onsubmit="createPost(event)">
+            <input type="text" placeholder="Title" id="post-title" required>
+            <textarea placeholder="Write your post..." id="post-content" required></textarea>
+            <input type="file" id="post-image" accept="image/*">
+            <button type="submit">Publish Post</button>
+        </form>
+
+        <div class="posts-container" id="posts-container">
+            <!-- Posts will be added here -->
+        </div>
+    </div>
+
+    <script>
+        let posts = [];
+        let postId = 0;
+
+        function togglePostForm() {
+            const form = document.querySelector('.post-form');
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function createPost(event) {
+            event.preventDefault();
+            const title = document.getElementById('post-title').value;
+            const content = document.getElementById('post-content').value;
+            const imageInput = document.getElementById('post-image');
+            
+            const post = {
+                id: postId++,
+                title,
+                content,
+                image: null,
+                likes: 0,
+                comments: [],
+                date: new Date()
+            };
+
+            if (imageInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    post.image = e.target.result;
+                    addPostToFeed(post);
+                }
+                reader.readAsDataURL(imageInput.files[0]);
+            } else {
+                addPostToFeed(post);
+            }
+
+            event.target.reset();
+            togglePostForm();
+        }
+
+        function addPostToFeed(post) {
+            const postsContainer = document.getElementById('posts-container');
+            
+            const postElement = document.createElement('div');
+            postElement.className = 'post';
+            postElement.innerHTML = `
+                ${post.image ? `<img src="${post.image}" class="post-img" alt="Post image">` : ''}
+                <h3>${post.title}</h3>
+                <p>${post.content}</p>
+                <div class="post-actions">
+                    <button class="like-btn" onclick="toggleLike(${post.id})">❤️ ${post.likes}</button>
+                    <button class="comment-btn" onclick="toggleComments(${post.id})">💬 ${post.comments.length}</button>
+                </div>
+                <div class="comments-section" id="comments-${post.id}">
+                    <div class="comments-list" id="comments-list-${post.id}">
+                        ${post.comments.map(comment => `
+                            <div class="comment">
+                                <span>${comment.user}:</span>
+                                <p>${comment.text}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <input type="text" class="comment-input" placeholder="Add a comment..." 
+                           onkeypress="handleCommentInput(event, ${post.id})">
+                </div>
+            `;
+
+            postsContainer.prepend(postElement);
+            posts.unshift(post);
+        }
+
+        function toggleLike(postId) {
+            const post = posts.find(p => p.id === postId);
+            post.likes += 1;
+            document.querySelector(`#posts-container .post:nth-child(${posts.length - post.id}) .like-btn`)
+                .textContent = `❤️ ${post.likes}`;
+        }
+
+        function toggleComments(postId) {
+            const commentsSection = document.getElementById(`comments-${postId}`);
+            commentsSection.style.display = commentsSection.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function handleCommentInput(event, postId) {
+            if (event.key === 'Enter' && event.target.value.trim()) {
+                const post = posts.find(p => p.id === postId);
+                const comment = {
+                    user: 'User', // In real app, use actual username
+                    text: event.target.value.trim()
+                };
+                
+                post.comments.push(comment);
+                event.target.value = '';
+                
+                const commentsList = document.getElementById(`comments-list-${postId}`);
+                const commentElement = document.createElement('div');
+                commentElement.className = 'comment';
+                commentElement.innerHTML = `
+                    <span>${comment.user}:</span>
+                    <p>${comment.text}</p>
+                `;
+                commentsList.appendChild(commentElement);
+                
+                document.querySelector(`#posts-container .post:nth-child(${posts.length - postId}) .comment-btn`)
+                    .textContent = `💬 ${post.comments.length}`;
+            }
+        }
+    </script>
+</body>
+</html>
